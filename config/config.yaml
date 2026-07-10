@@ -1,0 +1,89 @@
+project:
+  name: fraud-detection
+  random_state: 42
+
+paths:
+  raw_dir: data/raw
+  processed_dir: data/processed
+  raw_filename: PS_20174392719_1491204439457_log.csv
+  models_dir: models
+  figures_dir: outputs/figures
+  metrics_dir: outputs/metrics
+
+data:
+  # Set use_sample: false for final reported results on full ~6.3M rows
+  use_sample: true
+  sample_size: 500000
+  sample_random_state: 42
+  stratify_col: isFraud
+  # Transaction types that cannot be fraud in PaySim (EDA finding — filter pre-modeling)
+  non_fraud_eligible_types:
+    - PAYMENT
+    - CASH_IN
+
+preprocessing:
+  test_size: 0.15
+  val_size: 0.15
+  # PaySim 'step' simulates hours; time-aware split avoids temporal leakage
+  time_aware_split: true
+  step_col: step
+  scale_features: true
+
+feature_engineering:
+  balance_tolerance: 0.01
+  ratio_cap: 10.0
+
+models:
+  baseline:
+    max_iter: 1000
+    class_weight: balanced
+  random_forest:
+    n_estimators: 200
+    max_depth: 12
+    min_samples_leaf: 5
+    class_weight: balanced_subsample
+    n_iter_search: 20
+  xgboost:
+    n_estimators: 300
+    max_depth: 6
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+    n_iter_search: 25
+  isolation_forest:
+    n_estimators: 200
+    contamination: 0.001
+  autoencoder:
+    encoding_dim: 16
+    epochs: 20
+    batch_size: 256
+    learning_rate: 0.001
+
+imbalance:
+  strategies:
+    - class_weight
+    - smote
+    - smote_enn
+    - undersample
+  smote_k_neighbors: 5
+  undersample_ratio: 0.1
+
+evaluation:
+  primary_metric: pr_auc
+  cv_folds: 5
+  # Business cost model: FN (missed fraud) >> FP (false decline)
+  cost_false_positive: 50
+  cost_false_negative: 500
+  default_threshold: 0.5
+
+explainability:
+  shap_sample_size: 500
+  max_display_features: 15
+
+logging:
+  level: INFO
+  format: "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+
+dashboard:
+  default_threshold: 0.3
+  refresh_seconds: 30

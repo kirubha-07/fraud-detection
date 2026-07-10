@@ -1,0 +1,22 @@
+{
+  "model_name": "isolation_forest",
+  "precision": 0.20353982300884957,
+  "recall": 0.7371794871794872,
+  "f1": 0.31900138696255204,
+  "pr_auc": 0.40306024348932007,
+  "roc_auc": 0.9398439041817703,
+  "threshold": 0.5641785589496994,
+  "total_cost": 86000.0,
+  "confusion_matrix": [
+    [
+      31971,
+      900
+    ],
+    [
+      82,
+      230
+    ]
+  ],
+  "cv_pr_auc_mean": null,
+  "cv_pr_auc_std": null
+}

@@ -1,0 +1,43 @@
+# Core data science
+pandas>=2.0.0
+pyarrow>=14.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+scipy>=1.11.0
+
+# Gradient boosting
+xgboost>=2.0.0
+
+# Imbalanced learning
+imbalanced-learn>=0.11.0
+
+# Hyperparameter search
+optuna>=3.4.0
+
+# Deep learning (AutoEncoder)
+# TensorFlow is not available for Python 3.14 in this workspace, so keep it optional.
+tensorflow>=2.14.0; python_version < "3.13"
+
+# Explainability
+shap>=0.43.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.13.0
+plotly>=5.18.0
+
+# Dashboard
+streamlit>=1.28.0
+
+# Config & utilities
+pyyaml>=6.0.1
+python-dotenv>=1.0.0
+joblib>=1.3.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Notebooks
+jupyter>=1.0.0
+ipykernel>=6.25.0

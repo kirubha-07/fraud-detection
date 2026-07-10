@@ -1,0 +1,22 @@
+{
+  "model_name": "xgboost",
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 1.0,
+  "pr_auc": 1.0,
+  "roc_auc": 1.0,
+  "threshold": 0.9838480353355408,
+  "total_cost": 0.0,
+  "confusion_matrix": [
+    [
+      32871,
+      0
+    ],
+    [
+      0,
+      312
+    ]
+  ],
+  "cv_pr_auc_mean": null,
+  "cv_pr_auc_std": null
+}
