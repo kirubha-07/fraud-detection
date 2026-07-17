@@ -41,6 +41,10 @@ def setup_logging(level: str | None = None, log_format: str | None = None) -> lo
 
     Returns:
         Configured root logger.
+        
+    Note:
+        Uses force=True to prevent duplicate handlers on repeated calls
+        (e.g., Streamlit reruns). This is safe for CLI scripts and dashboards.
     """
     config = load_config()
     log_cfg = config.get("logging", {})

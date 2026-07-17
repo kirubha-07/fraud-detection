@@ -11,8 +11,10 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 
+import joblib
+
 from src.data_loader import load_data, save_processed
-from src.evaluate import evaluate_model, save_evaluation
+from src.evaluate import evaluate_model, find_cost_optimal_threshold, save_evaluation
 from src.feature_engineering import engineer_features
 from src.imbalance_strategies import ImbalanceStrategy
 from src.preprocessing import split_data
@@ -78,17 +80,42 @@ def train_baseline(config: dict | None = None):
     )
 
     model.fit(split.X_train, split.y_train)
-    y_prob = model.predict_proba(split.X_test)[:, 1]
-
+    
+    # Compute cost-optimal threshold on validation set (not test set)
+    y_val_prob = model.predict_proba(split.X_val)[:, 1]
+    eval_cfg = config["evaluation"]
+    threshold, _ = find_cost_optimal_threshold(
+        split.y_val,
+        y_val_prob,
+        eval_cfg["cost_false_positive"],
+        eval_cfg["cost_false_negative"],
+    )
+    
+    # Evaluate on test set with the validation-tuned threshold
+    y_test_prob = model.predict_proba(split.X_test)[:, 1]
     result = evaluate_model(
         model_name="logistic_regression",
         y_true=split.y_test,
-        y_prob=y_prob,
+        y_prob=y_test_prob,
+        threshold=threshold,
         config=config,
         cv_pr_auc_mean=float(cv_scores.mean()),
         cv_pr_auc_std=float(cv_scores.std()),
     )
     save_evaluation(result, config)
+    
+    # Save bundled model artifact
+    models_dir = resolve_path(config["paths"]["models_dir"])
+    models_dir.mkdir(parents=True, exist_ok=True)
+    bundle = {
+        "model": model,
+        "scaler": split.scaler,
+        "feature_names": split.feature_names,
+        "threshold": threshold,
+    }
+    joblib.dump(bundle, models_dir / "logistic_regression.joblib")
+    logger.info("Saved bundled model artifact to %s", models_dir / "logistic_regression.joblib")
+    
     return model, result
 
 

@@ -221,8 +221,19 @@ def compare_imbalance_strategies(config: dict[str, Any] | None = None) -> pd.Dat
         model.fit(X_train, y_train)
         elapsed = time.perf_counter() - start_time
 
-        y_prob = model.predict_proba(split.X_test)[:, 1]
-        result = evaluate_model(f"xgboost_{strategy}", split.y_test, y_prob, config=config)
+        # Compute cost-optimal threshold on validation set (not test set)
+        y_val_prob = model.predict_proba(split.X_val)[:, 1]
+        eval_cfg = config["evaluation"]
+        threshold, _ = find_cost_optimal_threshold(
+            split.y_val,
+            y_val_prob,
+            eval_cfg["cost_false_positive"],
+            eval_cfg["cost_false_negative"],
+        )
+        
+        # Evaluate on test set with the validation-tuned threshold
+        y_test_prob = model.predict_proba(split.X_test)[:, 1]
+        result = evaluate_model(f"xgboost_{strategy}", split.y_test, y_test_prob, threshold=threshold, config=config)
         rows.append(
             {
                 "strategy": strategy,
@@ -272,10 +283,32 @@ def train_tree_ensemble(
             model = train_fn(split, config, optuna_trials=optuna_trials)
         else:
             model = train_fn(split, config)
-        y_prob = model.predict_proba(split.X_test)[:, 1]
-        result = evaluate_model(name, split.y_test, y_prob, config=config)
+        
+        # Compute cost-optimal threshold on validation set (not test set)
+        y_val_prob = model.predict_proba(split.X_val)[:, 1]
+        eval_cfg = config["evaluation"]
+        threshold, _ = find_cost_optimal_threshold(
+            split.y_val,
+            y_val_prob,
+            eval_cfg["cost_false_positive"],
+            eval_cfg["cost_false_negative"],
+        )
+        
+        # Evaluate on test set with the validation-tuned threshold
+        y_test_prob = model.predict_proba(split.X_test)[:, 1]
+        result = evaluate_model(name, split.y_test, y_test_prob, threshold=threshold, config=config)
         save_evaluation(result, config)
-        joblib.dump(model, models_dir / f"{name}.joblib")
+        
+        # Save bundled model artifact
+        bundle = {
+            "model": model,
+            "scaler": split.scaler,
+            "feature_names": split.feature_names,
+            "threshold": threshold,
+        }
+        joblib.dump(bundle, models_dir / f"{name}.joblib")
+        logger.info("Saved bundled model artifact to %s", models_dir / f"{name}.joblib")
+        
         results[name] = {"model": model, "result": result}
 
     return results

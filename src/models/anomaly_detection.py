@@ -7,13 +7,14 @@ import logging
 from pathlib import Path
 from typing import Any
 
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import MinMaxScaler
 
 from src.data_loader import load_data, save_processed
-from src.evaluate import evaluate_model, save_evaluation
+from src.evaluate import evaluate_model, find_cost_optimal_threshold, save_evaluation
 from src.feature_engineering import engineer_features
 from src.preprocessing import split_data
 from src.utils import load_config, resolve_path, set_seed, setup_logging, timer
@@ -116,8 +117,33 @@ def train_anomaly_models(config: dict[str, Any] | None = None) -> dict[str, Any]
     iso_model = train_isolation_forest(split, config)
     iso_scores = iso_model.decision_function(split.X_test)
     iso_prob = _scores_to_probabilities(iso_scores)
-    iso_result = evaluate_model("isolation_forest", split.y_test, iso_prob, config=config)
+    
+    # Compute cost-optimal threshold on validation set (not test set)
+    iso_val_scores = iso_model.decision_function(split.X_val)
+    iso_val_prob = _scores_to_probabilities(iso_val_scores)
+    eval_cfg = config["evaluation"]
+    threshold, _ = find_cost_optimal_threshold(
+        split.y_val,
+        iso_val_prob,
+        eval_cfg["cost_false_positive"],
+        eval_cfg["cost_false_negative"],
+    )
+    
+    iso_result = evaluate_model("isolation_forest", split.y_test, iso_prob, threshold=threshold, config=config)
     save_evaluation(iso_result, config)
+    
+    # Save bundled model artifact
+    models_dir = resolve_path(config["paths"]["models_dir"])
+    models_dir.mkdir(parents=True, exist_ok=True)
+    bundle = {
+        "model": iso_model,
+        "scaler": split.scaler,
+        "feature_names": split.feature_names,
+        "threshold": threshold,
+    }
+    joblib.dump(bundle, models_dir / "isolation_forest.joblib")
+    logger.info("Saved bundled model artifact to %s", models_dir / "isolation_forest.joblib")
+    
     results["isolation_forest"] = iso_result
 
     try:
