@@ -174,6 +174,8 @@ pytest tests -q
 
 ## Setup
 
+### Core ML pipeline
+
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
@@ -181,6 +183,38 @@ python -m pip install -r requirements.txt
 ```
 
 If the PaySim CSV is present in `data/raw/`, the pipeline will use it. If `data/processed/featured_transactions.parquet` already exists, the training scripts and dashboard will reuse it directly.
+
+### FastAPI backend
+
+Install the API dependencies and start the service from the repo root:
+
+```bash
+python -m pip install -r backend/requirements.txt
+python -m uvicorn backend.main:app --reload --port 8000
+```
+
+### Next.js frontend
+
+Install the dashboard dependencies in `frontend/`, then point the app at the local API server:
+
+```bash
+cd frontend
+npm install
+```
+
+Create a local `frontend/.env.local` file with:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+Then run the UI:
+
+```bash
+npm run dev
+```
+
+The frontend talks to `http://localhost:8000` by default if `NEXT_PUBLIC_API_URL` is not set.
 
 ### Useful commands
 
@@ -191,6 +225,8 @@ python -m src.models.baseline
 python -m src.models.tree_ensemble
 python -m src.models.tree_ensemble --compare-imbalance
 python -m src.models.anomaly_detection
+python -m uvicorn backend.main:app --reload --port 8000
+cd frontend && npm run dev
 streamlit run app/dashboard.py
 pytest tests -q
 ```
