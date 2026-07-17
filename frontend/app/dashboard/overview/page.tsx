@@ -190,8 +190,7 @@ export default function OverviewPage() {
                                     background: "#162127", border: `1px solid ${C.border}`,
                                     borderRadius: 8, color: C.text,
                                 }}
-                                formatter={(v: number) => [`${(v * 100).toFixed(2)}%`, "Fraud Rate"]}
-                                labelFormatter={(l) => `Step ${l}`}
+                                formatter={(v: number) => [`${(v * 100).toFixed(2)}%`, "Fraud Rate"]} // eslint-disable-line @typescript-eslint/no-explicit-any
                             />
                             <Line
                                 type="monotone"
@@ -288,12 +287,6 @@ export default function OverviewPage() {
                 </div>
             </div>
 
-            <style jsx global>{`
-        @keyframes shimmer {
-          0% { background-position: 100% 0; }
-          100% { background-position: -100% 0; }
-        }
-      `}</style>
         </div>
     );
 }

@@ -211,12 +211,6 @@ export default async function HomePage() {
         </Link>
       </section>
 
-      <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.08); opacity: 1; }
-        }
-      `}</style>
     </main>
   );
 }

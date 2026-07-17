@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { useDashboard } from "@/contexts/DashboardContext";
 import { api, ShapGlobalItem, ShapLocalItem, ShapLocalResponse } from "@/lib/api";
-import { AlertCircle, ChevronDown } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 const C = { accent: "#CF9D7B", fraud: "#C46A52", legit: "#5C896B", muted: "#7A6E69", border: "#3A3534", text: "#E8DDD4", surface: "#162127" };
 
@@ -259,12 +259,6 @@ export default function ExplainabilityPage() {
                 )}
             </div>
 
-            <style jsx global>{`
-        @keyframes shimmer {
-          0% { background-position: 100% 0; }
-          100% { background-position: -100% 0; }
-        }
-      `}</style>
         </div>
     );
 }
