@@ -1,6 +1,10 @@
-"""Fraud Operations Dashboard — professional fintech analytics console.
+"""Fraud Operations Dashboard — Streamlit prototype (LEGACY).
 
-Redesign goals:
+SUPERSEDED: This file has been moved to legacy/ and is superseded by the
+production FastAPI + Next.js platform in backend/ and frontend/. It is
+kept for reference only and is no longer the primary dashboard.
+
+Original redesign goals:
 - Deep navy / charcoal colour palette with semantic risk scale (green → amber → red).
 - KPI metric cards with icons in a top row on every tab.
 - Cleaned-up sidebar with grouped expandable sections.

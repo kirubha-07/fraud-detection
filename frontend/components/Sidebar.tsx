@@ -2,7 +2,11 @@
 /**
  * components/Sidebar.tsx
  * Persistent sidebar for all dashboard pages.
- * Reads/writes DashboardContext — model/threshold changes propagate to all pages.
+ *
+ * Models with saved .joblib artifacts (xgboost, random_forest) are fully
+ * selectable. Models with metrics-only (logistic_regression, isolation_forest)
+ * appear disabled with an "(metrics only)" note — selecting them would cause
+ * live-scoring endpoints to fail since there's no artifact to score with.
  */
 
 import Link from "next/link";
@@ -16,6 +20,7 @@ import {
     ChevronDown,
     ChevronRight,
     ArrowLeft,
+    Lock,
 } from "lucide-react";
 import { useDashboard } from "@/contexts/DashboardContext";
 import { api, ModelInfo } from "@/lib/api";
@@ -37,17 +42,21 @@ export default function Sidebar() {
 
     useEffect(() => {
         api.models()
-            .then((r) => setModels(r.models.filter((m) => m.has_artifact)))
+            .then((r) => setModels(r.models))
             .catch(() => { });
     }, []);
+
+    // Separate models that have a scoring artifact from metrics-only ones
+    const scoringModels = models.filter((m) => m.has_artifact);
+    const metricsOnlyModels = models.filter((m) => !m.has_artifact);
 
     return (
         <aside
             className="flex flex-col shrink-0 h-screen sticky top-0 overflow-y-auto"
             style={{
-                width: "240px",
-                background: "var(--surface)",
-                borderRight: "1px solid var(--border)",
+                width: "248px",
+                background: "var(--color-surface)",
+                borderRight: "1px solid var(--color-border)",
                 padding: "24px 16px",
             }}
         >
@@ -55,27 +64,22 @@ export default function Sidebar() {
             <div className="mb-8">
                 <div
                     className="font-display text-xl font-bold mb-1"
-                    style={{ color: "var(--accent)" }}
+                    style={{ color: "var(--color-accent-primary)" }}
                 >
                     FraudOps
                 </div>
-                <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+                <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>
                     Analytics Platform
                 </div>
             </div>
 
             {/* Back to home */}
-            <Link
-                href="/"
-                className="nav-item mb-1"
-                style={{ fontSize: "0.78rem" }}
-            >
-                <ArrowLeft className="h-3.5 w-3.5" />
+            <Link href="/" className="nav-item mb-1" style={{ fontSize: "0.78rem" }}>
+                <ArrowLeft className="h-4 w-4" />
                 Home
             </Link>
 
-            {/* Divider */}
-            <div style={{ borderTop: "1px solid var(--border)", margin: "12px 0" }} />
+            <div style={{ borderTop: "1px solid var(--color-border)", margin: "12px 0" }} />
 
             {/* Navigation */}
             <nav className="flex flex-col gap-1 mb-6">
@@ -91,35 +95,69 @@ export default function Sidebar() {
                 ))}
             </nav>
 
-            {/* Divider */}
-            <div style={{ borderTop: "1px solid var(--border)", margin: "0 0 16px" }} />
+            <div style={{ borderTop: "1px solid var(--color-border)", margin: "0 0 16px" }} />
 
-            {/* ── Model ──────────────────────────────────────────────────────── */}
+            {/* ── Model selector ─────────────────────────────────────────────── */}
             <div className="mb-5">
                 <div className="section-title mb-2">Model</div>
+
+                {/* Selectable models with artifact */}
                 <select
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
                     style={{
                         width: "100%",
-                        background: "var(--surface-raised)",
-                        border: "1px solid var(--border)",
+                        background: "var(--color-bg)",
+                        border: "1px solid var(--color-border)",
                         borderRadius: "8px",
-                        color: "var(--text)",
+                        color: "var(--color-text-primary)",
                         padding: "8px 10px",
                         fontSize: "0.85rem",
                         outline: "none",
                     }}
                 >
-                    {models.length === 0 && (
-                        <option value="xgboost">xgboost</option>
+                    {scoringModels.length === 0 && (
+                        <>
+                            <option value="xgboost">xgboost</option>
+                            <option value="random_forest">random_forest</option>
+                        </>
                     )}
-                    {models.map((m) => (
+                    {scoringModels.map((m) => (
                         <option key={m.name} value={m.name}>
                             {m.name}
                         </option>
                     ))}
                 </select>
+
+                {/* Metrics-only models — shown as disabled info, not selectable */}
+                {metricsOnlyModels.length > 0 && (
+                    <div className="mt-3" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {metricsOnlyModels.map((m) => (
+                            <div
+                                key={m.name}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    padding: "6px 10px",
+                                    borderRadius: 6,
+                                    border: "1px solid var(--color-border)",
+                                    opacity: 0.5,
+                                }}
+                            >
+                                <Lock className="h-3 w-3 shrink-0" style={{ color: "var(--color-text-muted)" }} />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                        {m.name}
+                                    </div>
+                                    <div style={{ fontSize: "0.68rem", color: "var(--color-text-muted)" }}>
+                                        metrics only — no artifact
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* ── Threshold ──────────────────────────────────────────────────── */}
@@ -127,8 +165,8 @@ export default function Sidebar() {
                 <div className="section-title mb-2">
                     Threshold
                     <span
-                        className="ml-2 font-mono"
-                        style={{ color: "var(--accent)", fontFamily: "inherit" }}
+                        className="ml-2"
+                        style={{ color: "var(--color-accent-primary)", fontVariantNumeric: "tabular-nums" }}
                     >
                         {threshold.toFixed(2)}
                     </span>
@@ -140,13 +178,14 @@ export default function Sidebar() {
                     step={0.01}
                     value={threshold}
                     onChange={(e) => setThreshold(Number(e.target.value))}
-                    style={{ width: "100%", accentColor: "var(--accent)" }}
+                    style={{ width: "100%", accentColor: "var(--color-accent-primary)" }}
                 />
                 <div
                     className="flex justify-between text-xs mt-1"
-                    style={{ color: "var(--text-muted)" }}
+                    style={{ color: "var(--color-text-muted)" }}
                 >
-                    <span>0.01</span><span>0.99</span>
+                    <span>0.01</span>
+                    <span>0.99</span>
                 </div>
             </div>
 
@@ -157,11 +196,10 @@ export default function Sidebar() {
                 style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
             >
                 <span className="section-title" style={{ margin: 0 }}>Cost Parameters</span>
-                {costOpen ? (
-                    <ChevronDown className="h-3.5 w-3.5" style={{ color: "var(--text-muted)" }} />
-                ) : (
-                    <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--text-muted)" }} />
-                )}
+                {costOpen
+                    ? <ChevronDown className="h-3.5 w-3.5" style={{ color: "var(--color-text-muted)" }} />
+                    : <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--color-text-muted)" }} />
+                }
             </button>
             {costOpen && (
                 <div className="mt-3 flex flex-col gap-3">
@@ -178,7 +216,7 @@ function CostInput({
 }: { label: string; value: number; onChange: (v: number) => void }) {
     return (
         <div>
-            <div className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>{label}</div>
+            <div className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>{label}</div>
             <input
                 type="number"
                 min={0}
@@ -187,10 +225,10 @@ function CostInput({
                 onChange={(e) => onChange(Number(e.target.value))}
                 style={{
                     width: "100%",
-                    background: "var(--surface-raised)",
-                    border: "1px solid var(--border)",
+                    background: "var(--color-bg)",
+                    border: "1px solid var(--color-border)",
                     borderRadius: "6px",
-                    color: "var(--text)",
+                    color: "var(--color-text-primary)",
                     padding: "6px 8px",
                     fontSize: "0.85rem",
                     outline: "none",
