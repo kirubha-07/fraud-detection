@@ -1,0 +1,218 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+/* ─────────────────────────────────────────
+   FraudOps Design Tokens (CSS Variables)
+   Pure #FFFFFF is banned — textPrimary is
+   a warm off-white derived from the surface.
+──────────────────────────────────────────── */
+:root {
+  --bg: #0C1519;
+  --surface: #162127;
+  --surface-raised: #1E2D35;
+  --border: #3A3534;
+  --accent-sec: #724B39;
+  --accent: #CF9D7B;
+  --text: #E8DDD4;
+  --text-muted: #7A6E69;
+  --text-subtle: #A89A93;
+  --risk-fraud: #C46A52;
+  --risk-legit: #5C896B;
+  --risk-high: #C48E52;
+}
+
+/* ─── Tailwind v4 base overrides ─────────── */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+
+  html,
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--bg);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+}
+
+@layer components {
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .card-raised {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  /* Accent button */
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 600;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    letter-spacing: 0.01em;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    display: inline-block;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+  }
+
+  /* Risk badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .badge-critical {
+    color: #C46A52;
+    background: rgba(196, 106, 82, 0.1);
+    border-color: rgba(196, 106, 82, 0.3);
+  }
+
+  .badge-high {
+    color: #C48E52;
+    background: rgba(196, 142, 82, 0.1);
+    border-color: rgba(196, 142, 82, 0.3);
+  }
+
+  .badge-moderate {
+    color: #CF9D7B;
+    background: rgba(207, 157, 123, 0.1);
+    border-color: rgba(207, 157, 123, 0.3);
+  }
+
+  .badge-low {
+    color: #5C896B;
+    background: rgba(92, 137, 107, 0.1);
+    border-color: rgba(92, 137, 107, 0.3);
+  }
+
+  /* Sidebar nav item */
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-subtle);
+    transition: background 0.15s, color 0.15s;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .nav-item:hover {
+    background: rgba(207, 157, 123, 0.08);
+    color: var(--text);
+  }
+
+  .nav-item.active {
+    background: rgba(207, 157, 123, 0.12);
+    color: var(--accent);
+  }
+
+  /* KPI label above numbers */
+  .kpi-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  /* Big KPI numbers use display font */
+  .kpi-value {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  /* Section divider */
+  .section-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
