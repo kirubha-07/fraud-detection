@@ -1,154 +1,88 @@
 "use client";
 /**
  * app/dashboard/explainability/page.tsx
- * Global SHAP importance (horizontal bar) + local waterfall explanation
- * for a selected transaction from the live backend.
+ * Explainability Page: Global SHAP importance (horizontal bar) +
+ * local waterfall chart explanation for selected transaction.
+ * Composed from reusable components.
  */
 
 import { useEffect, useState } from "react";
-import {
-    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-    CartesianGrid, Cell,
-} from "recharts";
 import { useDashboard } from "@/contexts/DashboardContext";
-import { api, ShapGlobalItem, ShapLocalItem, ShapLocalResponse } from "@/lib/api";
+import { api, ShapGlobalItem, ShapLocalResponse } from "@/lib/api";
 import { AlertCircle } from "lucide-react";
 
-const C = { accent: "#CF9D7B", fraud: "#C46A52", legit: "#5C896B", muted: "#7A6E69", border: "#3A3534", text: "#E8DDD4", surface: "#162127" };
-
-function Skeleton({ h = 200 }: { h?: number }) {
-    return (
-        <div
-            style={{
-                height: h, borderRadius: 10,
-                background: "linear-gradient(90deg, #1E2D35 25%, #253540 50%, #1E2D35 75%)",
-                backgroundSize: "400% 100%",
-                animation: "shimmer 1.8s infinite",
-            }}
-        />
-    );
-}
+// Reusable components
+import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
+import EmptyState from "@/components/ui/EmptyState";
+import ShapGlobalBar from "@/components/charts/ShapGlobalBar";
+import ShapLocalWaterfall from "@/components/charts/ShapLocalWaterfall";
 
 export default function ExplainabilityPage() {
     const { model } = useDashboard();
-    const [global_, setGlobal] = useState<ShapGlobalItem[] | null>(null);
+    const [globalData, setGlobalData] = useState<ShapGlobalItem[]>([]);
     const [globalLoading, setGlobalLoading] = useState(true);
     const [globalError, setGlobalError] = useState<string | null>(null);
 
-    // Local explanation
+    // Local explanation section
     const [txnId, setTxnId] = useState<number>(0);
-    const [local, setLocal] = useState<ShapLocalResponse | null>(null);
+    const [localResponse, setLocalResponse] = useState<ShapLocalResponse | null>(null);
     const [localLoading, setLocalLoading] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
 
-    // Load global SHAP when model changes
+    // Load global SHAP values when active model changes
     useEffect(() => {
-        setGlobal(null);
+        setGlobalData([]);
         setGlobalLoading(true);
         setGlobalError(null);
+
         api.shapGlobal(model, 200)
-            .then((r) => setGlobal(r.items))
-            .catch((e) => setGlobalError(e.message))
+            .then((res) => setGlobalData(res.items))
+            .catch((err) => setGlobalError(err.message))
             .finally(() => setGlobalLoading(false));
     }, [model]);
 
-    // Load local SHAP on demand
-    function fetchLocal() {
-        setLocal(null);
+    // Load local SHAP explanation on user click
+    function handleFetchLocal() {
+        setLocalResponse(null);
         setLocalLoading(true);
         setLocalError(null);
+
         api.shapLocal(model, txnId)
-            .then(setLocal)
-            .catch((e) => setLocalError(e.message))
+            .then(setLocalResponse)
+            .catch((err) => setLocalError(err.message))
             .finally(() => setLocalLoading(false));
     }
 
-    // Waterfall: each feature's shap_value as a bar, sorted by abs value
-    const waterfallData = local?.items ?? [];
-
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+            {/* Page Header */}
             <div>
-                <h1 className="font-display text-2xl font-bold mb-1" style={{ color: "var(--accent)" }}>
+                <h1 className="font-display text-2xl font-bold mb-1" style={{ color: "var(--color-accent-primary)" }}>
                     Explainability
                 </h1>
-                <p style={{ color: C.muted, fontSize: "0.85rem" }}>
-                    SHAP values for model: <strong style={{ color: C.text }}>{model}</strong>
+                <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>
+                    SHAP values for model: <strong style={{ color: "var(--color-text-primary)" }}>{model}</strong>
                 </p>
             </div>
 
-            {/* ── Global SHAP ──────────────────────────────────────────────────── */}
-            <div className="card">
-                <h2 className="font-display text-base font-semibold mb-1" style={{ color: C.accent }}>
-                    Global Feature Importance — mean |SHAP|
-                </h2>
-                <p style={{ fontSize: "0.75rem", color: C.muted, marginBottom: 16 }}>
-                    Computed on a 200-row sample of the test set. Tree-based SHAP values.
-                </p>
+            {globalError && <EmptyState error title="Global explainability failed" message={globalError} />}
 
-                {globalError && (
-                    <div className="flex items-center gap-2 text-sm mb-4" style={{ color: C.fraud }}>
-                        <AlertCircle className="h-4 w-4" /> {globalError}
+            {/* Global SHAP Importance bar chart */}
+            <ShapGlobalBar data={globalData} loading={globalLoading} />
+
+            {/* Local Transaction Explanation section */}
+            <div className="card" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                <div>
+                    <div className="chart-title">Local Transaction Explanation</div>
+                    <div className="chart-subtitle" style={{ margin: 0 }}>
+                        Enter a transaction index (0 - 33,182) to compute path force SHAP values explaining the risk prediction score.
                     </div>
-                )}
+                </div>
 
-                {globalLoading ? (
-                    <Skeleton h={380} />
-                ) : global_ ? (
-                    <ResponsiveContainer width="100%" height={Math.max(300, global_.length * 22)}>
-                        <BarChart
-                            layout="vertical"
-                            data={[...global_].reverse()}
-                            style={{ fontFamily: "Inter", fontSize: 11 }}
-                            margin={{ left: 150, right: 32 }}
-                        >
-                            <CartesianGrid horizontal={false} stroke={C.border} strokeDasharray="3 3" />
-                            <XAxis
-                                type="number"
-                                stroke={C.muted}
-                                tick={{ fill: C.muted }}
-                                tickFormatter={(v: number) => v.toFixed(3)}
-                                label={{ value: "mean |SHAP|", position: "insideBottom", fill: C.muted, dy: 14, fontSize: 11 }}
-                            />
-                            <YAxis
-                                type="category"
-                                dataKey="feature"
-                                stroke={C.muted}
-                                tick={{ fill: C.text, fontSize: 11 }}
-                                width={145}
-                            />
-                            <Tooltip
-                                contentStyle={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }}
-                                formatter={(v: number) => [v.toFixed(5), "mean |SHAP|"]}
-                            />
-                            <Bar dataKey="mean_abs_shap" radius={[0, 4, 4, 0]}>
-                                {[...global_].reverse().map((entry, i) => {
-                                    const max = global_[0]?.mean_abs_shap ?? 1;
-                                    const ratio = entry.mean_abs_shap / max;
-                                    const r = Math.round(207 * ratio + 92 * (1 - ratio));
-                                    const g = Math.round(157 * ratio + 137 * (1 - ratio));
-                                    const b = Math.round(123 * ratio + 107 * (1 - ratio));
-                                    return <Cell key={i} fill={`rgb(${r},${g},${b})`} opacity={0.85} />;
-                                })}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                ) : null}
-            </div>
-
-            {/* ── Local SHAP ───────────────────────────────────────────────────── */}
-            <div className="card">
-                <h2 className="font-display text-base font-semibold mb-1" style={{ color: C.accent }}>
-                    Local Transaction Explanation
-                </h2>
-                <p style={{ fontSize: "0.75rem", color: C.muted, marginBottom: 16 }}>
-                    SHAP waterfall for a single transaction. Red bars increase fraud probability; green bars decrease it.
-                </p>
-
-                {/* Transaction selector */}
-                <div className="flex items-center gap-3 mb-5">
-                    <label style={{ fontSize: "0.82rem", color: C.muted, whiteSpace: "nowrap" }}>
-                        Transaction ID (0–33182):
+                {/* Transaction ID input field + submit button */}
+                <div className="flex items-center gap-3">
+                    <label style={{ fontSize: "0.82rem", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+                        Transaction ID (Index):
                     </label>
                     <input
                         type="number"
@@ -157,108 +91,60 @@ export default function ExplainabilityPage() {
                         value={txnId}
                         onChange={(e) => setTxnId(Number(e.target.value))}
                         style={{
-                            background: "var(--surface-raised)", border: `1px solid ${C.border}`,
-                            borderRadius: 8, color: C.text, padding: "6px 10px",
-                            fontSize: "0.85rem", width: 120, outline: "none",
+                            background: "var(--color-surface)",
+                            border: `1px solid var(--color-border)`,
+                            borderRadius: 8,
+                            color: "var(--color-text-primary)",
+                            padding: "8px 12px",
+                            fontSize: "0.85rem",
+                            width: 120,
+                            outline: "none",
                         }}
                     />
                     <button
-                        onClick={fetchLocal}
+                        onClick={handleFetchLocal}
                         disabled={localLoading}
                         style={{
-                            background: "rgba(207,157,123,0.15)", border: `1px solid ${C.accent}`,
-                            borderRadius: 8, color: C.accent, padding: "6px 16px",
-                            fontSize: "0.85rem", fontWeight: 600, cursor: "pointer",
+                            background: "rgba(207, 157, 123, 0.15)",
+                            border: `1px solid var(--color-accent-primary)`,
+                            borderRadius: 8,
+                            color: "var(--color-accent-primary)",
+                            padding: "8px 20px",
+                            fontSize: "0.85rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
                             opacity: localLoading ? 0.5 : 1,
+                            transition: "opacity 0.2s",
                         }}
                     >
-                        {localLoading ? "Computing..." : "Explain"}
+                        {localLoading ? "Computing..." : "Explain Prediction"}
                     </button>
                 </div>
 
                 {localError && (
-                    <div className="flex items-center gap-2 text-sm mb-4" style={{ color: C.fraud }}>
-                        <AlertCircle className="h-4 w-4" /> {localError}
-                    </div>
-                )}
-
-                {local && (
                     <div
+                        className="flex items-center gap-3"
                         style={{
-                            padding: "12px 16px", borderRadius: 8, marginBottom: 16,
-                            background: "rgba(207,157,123,0.08)", border: `1px solid rgba(207,157,123,0.2)`
+                            color: "var(--color-risk-fraud)",
+                            fontSize: "0.85rem",
+                            padding: "12px 16px",
+                            borderRadius: 8,
+                            border: "1px solid rgba(196, 106, 82, 0.2)",
+                            background: "rgba(196, 106, 82, 0.05)",
                         }}
                     >
-                        <span style={{ fontSize: "0.8rem", color: C.muted }}>Fraud probability: </span>
-                        <span
-                            style={{
-                                fontFamily: "Playfair Display, serif", fontSize: "1.4rem", fontWeight: 700,
-                                color: local.fraud_probability > 0.5 ? C.fraud : C.legit,
-                            }}
-                        >
-                            {local.fraud_probability.toFixed(4)}
-                        </span>
-                        <span style={{ fontSize: "0.8rem", color: C.muted, marginLeft: 16 }}>
-                            Base value: {local.base_value.toFixed(4)}
-                        </span>
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        <span>{localError}</span>
                     </div>
                 )}
 
-                {localLoading ? (
-                    <Skeleton h={320} />
-                ) : waterfallData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={Math.max(280, waterfallData.length * 26)}>
-                        <BarChart
-                            layout="vertical"
-                            data={waterfallData}
-                            style={{ fontFamily: "Inter", fontSize: 11 }}
-                            margin={{ left: 180, right: 60 }}
-                        >
-                            <CartesianGrid horizontal={false} stroke={C.border} strokeDasharray="3 3" />
-                            <XAxis
-                                type="number"
-                                stroke={C.muted}
-                                tick={{ fill: C.muted }}
-                                tickFormatter={(v: number) => v > 0 ? `+${v.toFixed(3)}` : v.toFixed(3)}
-                                label={{ value: "SHAP value", position: "insideBottom", fill: C.muted, dy: 14, fontSize: 11 }}
-                            />
-                            <YAxis
-                                type="category"
-                                dataKey="feature"
-                                stroke={C.muted}
-                                tick={{ fill: C.text, fontSize: 11 }}
-                                width={175}
-                            />
-                            <Tooltip
-                                contentStyle={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }}
-                                formatter={(v: number, name: string, props: { payload?: ShapLocalItem }) => {
-                                    const item = props.payload;
-                                    return [
-                                        `SHAP: ${v > 0 ? "+" : ""}${v.toFixed(5)}\nValue: ${item?.value?.toFixed(4) ?? ""}`,
-                                        item?.feature ?? "",
-                                    ];
-                                }}
-                            />
-                            <Bar dataKey="shap_value" radius={[0, 4, 4, 0]}>
-                                {waterfallData.map((entry, i) => (
-                                    <Cell
-                                        key={i}
-                                        fill={entry.shap_value >= 0 ? C.fraud : C.legit}
-                                        opacity={Math.max(0.4, Math.min(1, Math.abs(entry.shap_value) / (Math.abs(waterfallData[0]?.shap_value ?? 1)) + 0.3))}
-                                    />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                ) : (
-                    !local && (
-                        <div style={{ textAlign: "center", color: C.muted, fontSize: "0.85rem", padding: "32px 0" }}>
-                            Enter a transaction ID and click Explain to see the SHAP breakdown.
-                        </div>
-                    )
-                )}
+                <ShapLocalWaterfall
+                    data={localResponse?.items ?? []}
+                    baseValue={localResponse?.base_value ?? 0}
+                    fraudProbability={localResponse?.fraud_probability ?? 0}
+                    loading={localLoading}
+                />
             </div>
-
         </div>
     );
 }
