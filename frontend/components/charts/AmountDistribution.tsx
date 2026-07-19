@@ -44,10 +44,31 @@ export default function AmountDistribution({ data, loading = false }: AmountDist
                 </div>
             ) : (
                 <ResponsiveContainer width="100%" height={240}>
-                    <BarChart data={data} style={{ fontFamily: "Inter, sans-serif", fontSize: 11 }}>
+                    <BarChart data={data} style={{ fontFamily: "Inter, sans-serif", fontSize: 11 }} margin={{ bottom: 24, left: 8 }}>
                         <CartesianGrid stroke={borderColor} strokeDasharray="3 3" />
-                        <XAxis dataKey="bin_label" stroke={mutedColor} />
-                        <YAxis stroke={mutedColor} tickFormatter={(v) => v.toLocaleString()} />
+                        <XAxis
+                            dataKey="bin_label"
+                            stroke={mutedColor}
+                            label={{
+                                value: "Transaction Amount (log₁₀ scale bins)",
+                                position: "insideBottom",
+                                fill: mutedColor,
+                                dy: 14,
+                                fontSize: 10,
+                            }}
+                        />
+                        <YAxis
+                            stroke={mutedColor}
+                            tickFormatter={(v) => v.toLocaleString()}
+                            label={{
+                                value: "Transaction Count",
+                                angle: -90,
+                                position: "insideLeft",
+                                fill: mutedColor,
+                                dx: -10,
+                                fontSize: 10,
+                            }}
+                        />
                         <Tooltip
                             contentStyle={{
                                 background: surfaceColor,
@@ -55,7 +76,7 @@ export default function AmountDistribution({ data, loading = false }: AmountDist
                                 borderRadius: 8,
                                 color: textColor,
                             }}
-                            formatter={(v: number) => [v.toLocaleString(), ""]}
+                            formatter={(v: any) => [Number(v).toLocaleString(), ""]}
                         />
                         <Legend wrapperStyle={{ fontSize: "11px" }} iconSize={8} iconType="circle" />
                         <Bar dataKey="legitimate_count" name="Legitimate" fill={legitColor} opacity={0.8} />
