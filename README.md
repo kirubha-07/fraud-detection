@@ -1,6 +1,23 @@
 # Real-Time Fraud Detection on Mobile Money Transactions
 
-This project scores PaySim mobile-money transactions for fraud risk using a small set of supervised and unsupervised models, feature engineering based on balance inconsistencies, and a Streamlit fraud-ops dashboard. The repo is a portfolio-grade implementation, not a production fraud platform.
+This project scores PaySim mobile-money transactions for fraud risk using a small set of supervised and unsupervised models, feature engineering based on balance inconsistencies, and a FastAPI + Next.js fraud-ops dashboard. The repo is a portfolio-grade implementation, not a production fraud platform.
+
+## Project Structure
+
+```
+fraud-detection/
+├── src/         — ML pipeline: data loading, feature engineering, model training, evaluation
+├── backend/     — FastAPI service serving trained models via REST endpoints
+├── frontend/    — Next.js analytics dashboard consuming the backend API
+├── tests/       — pytest unit tests for the ML pipeline
+├── scripts/     — standalone analysis scripts (ablation study, threshold-leakage quantification)
+├── notebooks/   — exploratory analysis notebooks (historical record)
+├── models/      — saved trained model artifacts (.joblib)
+├── outputs/     — evaluation metrics and figures
+├── reports/     — model card
+├── legacy/      — superseded Streamlit dashboard, kept for reference
+└── config/      — central config.yaml controlling all pipeline paths and parameters
+```
 
 ## Business Problem
 
@@ -133,28 +150,28 @@ The project includes class weighting, SMOTE, SMOTE-ENN, and undersampling. In th
 ## Key Insights
 
 1. Filtering `PAYMENT` and `CASH_IN` reduces noise because those transaction types have no fraud labels in PaySim.
-2. Balance reconciliation features are the core signal. `hasBalanceErrorOrig`, `errorBalanceOrig`, `balanceChangeOrig`, and `drainsFullBalance` are the strongest engineered patterns.
+2. Balance reconciliation features are the core signal. `hasBalanceErrorOrig`, `errorBalanceOrig`, `balanceChangeOrig`, and `drainsFullBalance` are the strongest engineered patterns. (see `scripts/xgboost_ablation.py` for a controlled ablation study quantifying the PR-AUC drop when these features are removed)
 3. The synthetic PaySim fraud mechanism produces very strong separation between fraud and non-fraud transactions. That is why Random Forest and XGBoost both reach near-perfect test metrics on this sample.
 4. PR-AUC is more informative than accuracy for this class imbalance. A naive all-legit predictor would look good on accuracy and fail completely on fraud detection.
-5. The cost-based threshold is essential. The default 0.5 cutoff is not the right operating point when missed fraud is much more expensive than a false decline.
+5. The cost-based threshold is essential. The default 0.5 cutoff is not the right operating point when missed fraud is much more expensive than a false decline. (see `scripts/quantify_threshold_leakage.py` for a quantification of the cost impact between test-tuned vs. validation-tuned thresholds)
 
 ## Dashboard
 
-`app/dashboard.py` is a Streamlit fraud-ops console with three tabs:
+The current dashboard is a **FastAPI + Next.js** fraud-ops console served from `backend/` and `frontend/`. It exposes four pages:
 
-- Live Scoring: score the held-out batch or an uploaded CSV, sort by fraud probability, and inspect the highest-risk rows
-- Model Performance: show PR-AUC, ROC-AUC, precision, recall, F1, confusion matrix, and probability distribution charts
-- Explainability: show a local SHAP explanation for a selected scored transaction plus the top global SHAP contributors
+- **Overview** — KPI cards, fraud-rate time series, transaction type breakdown, and amount distribution
+- **Performance** — ROC/PR curves, confusion matrix heatmap, cost-threshold curve, and model comparison table
+- **Explainability** — global SHAP bar chart and per-transaction local waterfall
+- **Live Scoring** — submit a batch of transactions and inspect fraud probabilities in a sortable table
 
-Controls live in the sidebar:
+Start the full stack:
 
-- model selector
-- threshold slider
-- false positive and false negative cost inputs
-- CSV upload
-- advanced SHAP sample sizing
+```bash
+python -m uvicorn backend.main:app --reload --port 8000
+cd frontend && npm run dev
+```
 
-The dashboard only uses data and models that the pipeline actually produces.
+The original Streamlit prototype is preserved in [legacy/](legacy/) for reference.
 
 ## Tests
 

@@ -1,3 +1,6 @@
+# Supports: README.md — Key Insights #2 (balance-reconciliation features as core signal)
+# and Key Insights #3 (near-perfect metrics explanation due to synthetic fraud mechanism).
+# Run: python scripts/xgboost_ablation.py  →  outputs/metrics/xgboost_ablation_no_balance_features.json
 """XGBoost ablation study: measure impact of balance reconciliation features.
 
 This script retrains XGBoost with the balance features removed to quantify

@@ -1,3 +1,6 @@
+# Supports: README.md — Evaluation section ("Threshold selection is cost-based") and
+# Key Insights #5 (cost-based threshold is essential; default 0.5 is the wrong operating point).
+# Run: python scripts/quantify_threshold_leakage.py  →  outputs/metrics/threshold_leakage_quantification.json
 """Quantify the impact of threshold leakage on test set metrics.
 
 This script compares the cost difference between:
